@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RHYTHM PATROL - 음악 리듬 체감 레트로 아케이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 레트로 아케이드 폰트 및 기본 스타일 설정 */
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #090a14;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .arcade-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        /* CRT 브라운관 스캔라인 효과 */
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.04),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.04)
+            );
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+        }
+        /* 네온 글로우 버튼 효과 */
+        .arcade-btn {
+            box-shadow: 0 4px 0 #1e293b, 0 0 15px rgba(56, 189, 248, 0.4);
+            transition: all 0.08s ease;
+        }
+        .arcade-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #1e293b, 0 0 25px rgba(56, 189, 248, 0.8);
+        }
+        .arcade-btn-amber {
+            box-shadow: 0 4px 0 #78350f, 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+        .arcade-btn-amber:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #78350f, 0 0 25px rgba(245, 158, 11, 0.8);
+        }
+        /* 펄스 애니메이션 */
+        @keyframes beatPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.18); }
+            100% { transform: scale(1); }
+        }
+        .beat-active {
+            animation: beatPulse 0.15s ease-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4 bg-slate-950">
+
+    <!-- 상단 헤더: 레트로 아케이드 타이틀 및 상태 표시 -->
+    <header class="w-full max-w-4xl flex flex-wrap items-center justify-between bg-slate-900/90 border-2 border-cyan-500/50 rounded-xl p-3 sm:px-5 shadow-lg shadow-cyan-950/50 mb-2">
+        <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-rose-500 animate-ping"></div>
+            <h1 class="arcade-font text-sm sm:text-xl text-cyan-400 tracking-wider drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+                RHYTHM PATROL
+            </h1>
+            <span class="hidden md:inline-block text-xs bg-cyan-950 text-cyan-300 border border-cyan-700 px-2 py-0.5 rounded font-bold">
+                중2 음악 프로젝트: 리듬 & 박자 탐사대
+            </span>
+        </div>
+
+        <div class="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm font-bold">
+            <div class="flex flex-col items-end">
+                <span class="text-slate-400 text-[10px]">STAGE</span>
+                <span id="hud-stage" class="arcade-font text-amber-400 text-xs sm:text-sm">1 / 3</span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span class="text-slate-400 text-[10px]">COMBO</span>
+                <span id="hud-combo" class="arcade-font text-emerald-400 text-xs sm:text-sm">0</span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span class="text-slate-400 text-[10px]">SCORE</span>
+                <span id="hud-score" class="arcade-font text-white text-xs sm:text-sm">00000</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 중앙 메인 게임 컨테이너 -->
+    <main class="relative w-full max-w-4xl flex-1 flex flex-col items-center justify-center">
+        <!-- 박자 인디케이터 바 (시각적 메트로놈) -->
+        <div id="beat-bar" class="w-full bg-slate-900/90 border-x-2 border-t-2 border-slate-700 rounded-t-xl px-4 py-2 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span id="stage-badge" class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold px-2.5 py-1 rounded-md">
+                    대기 중
+                </span>
+                <span id="stage-subtitle" class="text-xs sm:text-sm text-slate-300 font-medium truncate max-w-[180px] sm:max-w-xs">
+                    사운드 엔진 준비 완료
+                </span>
+            </div>
+            
+            <!-- 실시간 박자 램프 (1 - 2 - 3 - 4) -->
+            <div id="beat-lamps" class="flex items-center gap-2 sm:gap-3">
+                <div class="beat-lamp w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-800 border-2 border-slate-600 flex items-center justify-center arcade-font text-xs text-slate-400" data-beat="0">1</div>
+                <div class="beat-lamp w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-800 border-2 border-slate-600 flex items-center justify-center arcade-font text-xs text-slate-400" data-beat="1">2</div>
+                <div class="beat-lamp w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-800 border-2 border-slate-600 flex items-center justify-center arcade-font text-xs text-slate-400" data-beat="2">3</div>
+                <div class="beat-lamp w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-800 border-2 border-slate-600 flex items-center justify-center arcade-font text-xs text-slate-400" data-beat="3">4</div>
+            </div>
+        </div>
+
+        <!-- 게임 캔버스 래퍼 -->
+        <div class="relative w-full aspect-[16/9] max-h-[58vh] bg-slate-950 border-2 border-slate-700 rounded-b-xl overflow-hidden shadow-2xl">
+            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+            
+            <!-- 브라운관 스캔라인 오버레이 -->
+            <div class="crt-overlay absolute inset-0"></div>
+
+            <!-- 1. 타이틀 / 시작 오버레이 화면 -->
+            <div id="overlay-start" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-8 text-center z-20">
+                <div class="inline-block px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 text-xs font-bold mb-3">
+                    🎵 개념 암기 NO! 귀와 손으로 익히는 리듬 아케이드
+                </div>
+                <h2 class="arcade-font text-2xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-amber-300 to-rose-400 mb-3 leading-relaxed">
+                    RHYTHM PATROL
+                </h2>
+                <p class="text-slate-300 text-xs sm:text-sm max-w-lg mb-6 leading-relaxed">
+                    탐사 차량을 조종해 미지의 행성을 돌파하세요!<br>
+                    음악의 <span class="text-cyan-400 font-bold">일정한 박(Beat)</span>과 <span class="text-amber-400 font-bold">강박(Accent)</span>, 그리고 베토벤의 <span class="text-rose-400 font-bold">리듬꼴(Motif)</span>을 몸으로 느끼며 장애물을 넘다 보면 음악적 요소가 자연스럽게 완성됩니다.
+                </p>
+
+                <!-- 스테이지 선택 버튼 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-2xl mb-6">
+                    <button onclick="startGame(1)" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white p-3 rounded-xl text-left border border-cyan-300/40">
+                        <div class="arcade-font text-[10px] text-cyan-200 mb-1">STAGE 01</div>
+                        <div class="font-black text-sm">일정한 맥박(박)</div>
+                        <div class="text-[11px] text-cyan-100 mt-0.5">정박에 맞춰 크레이터 점프!</div>
+                    </button>
+                    <button onclick="startGame(2)" class="arcade-btn bg-amber-600 hover:bg-amber-500 text-white p-3 rounded-xl text-left border border-amber-300/40">
+                        <div class="arcade-font text-[10px] text-amber-200 mb-1">STAGE 02</div>
+                        <div class="font-black text-sm">강약의 비밀(박자)</div>
+                        <div class="text-[11px] text-amber-100 mt-0.5">3박자 왈츠 강박 부스터!</div>
+                    </button>
+                    <button onclick="startGame(3)" class="arcade-btn bg-rose-600 hover:bg-rose-500 text-white p-3 rounded-xl text-left border border-rose-300/40">
+                        <div class="arcade-font text-[10px] text-rose-200 mb-1">STAGE 03</div>
+                        <div class="font-black text-sm">운명의 리듬꼴</div>
+                        <div class="text-[11px] text-rose-100 mt-0.5">따-따-따-따아~ 실드 방어!</div>
+                    </button>
+                </div>
+
+                <button onclick="startGame(1)" class="arcade-btn bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-8 py-3.5 rounded-xl text-sm sm:text-base tracking-wide">
+                    ▶ STAGE 1부터 순차 탐사 시작 (SPACE)
+                </button>
+            </div>
+
+            <!-- 2. 스테이지 클리어 & 개념 연결(스캐폴딩) 브리핑 모달 -->
+            <div id="overlay-briefing" class="hidden absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center z-20">
+                <div class="bg-slate-900 border-2 border-amber-400 rounded-2xl p-5 sm:p-6 max-w-xl w-full shadow-2xl">
+                    <div class="arcade-font text-amber-400 text-xs sm:text-sm mb-2">STAGE CLEAR!</div>
+                    <h3 id="briefing-title" class="text-lg sm:text-2xl font-black text-white mb-3">
+                        방금 네가 몸으로 느낀 감각의 정체는?
+                    </h3>
+                    
+                    <!-- 체험-개념 연결 카드 -->
+                    <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-4 text-left mb-4 space-y-2.5">
+                        <div class="flex items-start gap-2">
+                            <span class="bg-cyan-500/20 text-cyan-300 text-xs font-bold px-2 py-0.5 rounded shrink-0 mt-0.5">방금 체험</span>
+                            <p id="briefing-exp" class="text-xs sm:text-sm text-slate-200 leading-relaxed"></p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="bg-amber-500/20 text-amber-300 text-xs font-bold px-2 py-0.5 rounded shrink-0 mt-0.5">음악 개념</span>
+                            <p id="briefing-concept" class="text-xs sm:text-sm text-amber-200 font-bold leading-relaxed"></p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="bg-emerald-500/20 text-emerald-300 text-xs font-bold px-2 py-0.5 rounded shrink-0 mt-0.5">감상 팁</span>
+                            <p id="briefing-tip" class="text-xs text-slate-300 leading-relaxed"></p>
+                        </div>
+                    </div>
+
+                    <!-- 확인 퀴즈 (단순 정의가 아닌 방금 체험 확인) -->
+                    <div class="mb-4">
+                        <p id="briefing-quiz-q" class="text-xs sm:text-sm font-bold text-cyan-300 mb-2"></p>
+                        <div id="briefing-quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+                    </div>
+
+                    <button id="btn-next-stage" disabled onclick="proceedNextStage()" class="w-full py-3 rounded-xl font-black text-sm bg-slate-700 text-slate-400 cursor-not-allowed transition-all">
+                        위 확인 문제를 맞히면 다음 스테이지가 열립니다 🔒
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. 최종 결과 & 수업 감상문 서술 도우미 리포트 -->
+            <div id="overlay-finish" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center z-20 overflow-y-auto">
+                <div class="bg-slate-900 border-2 border-cyan-400 rounded-2xl p-5 sm:p-6 max-w-2xl w-full shadow-2xl">
+                    <div class="arcade-font text-cyan-400 text-sm sm:text-base mb-1">ALL STAGES COMPLETE!</div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white mb-2">
+                        🏆 음악 탐사 대원 인증 리포트
+                    </h3>
+                    <p class="text-xs sm:text-sm text-slate-300 mb-4">
+                        최종 점수: <span id="final-score" class="arcade-font text-amber-400 text-base">0</span>점 | 최대 콤보: <span id="final-combo" class="arcade-font text-emerald-400 text-base">0</span>
+                    </p>
+
+                    <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 text-left mb-4">
+                        <div class="text-xs font-bold text-cyan-300 mb-2 flex items-center justify-between">
+                            <span>📝 오늘 수업 [시대별 대표곡 감상 서술] 활용 문장 힌트</span>
+                            <button onclick="copySummaryNote()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-2.5 py-1 rounded text-[11px] font-bold">
+                                📋 감상 힌트 복사하기
+                            </button>
+                        </div>
+                        <textarea id="summary-note" readonly rows="4" class="w-full bg-slate-950 text-slate-200 text-xs p-3 rounded-lg border border-slate-700 focus:outline-none leading-relaxed">나는 오늘 게임을 통해 음악의 3가지 핵심 요소를 몸으로 체험했다.
+1. [박(Beat)]: 일정하게 뛰는 심장박동처럼 곡 전체를 지탱하는 기본 맥박이다.
+2. [박자(Meter)]: '강-약-약(3/4박자)'처럼 강박이 주기적으로 반복되며 춤곡 같은 역동적인 느낌을 만든다.
+3. [리듬꼴(Rhythm Motif)]: 베토벤 교향곡 5번의 '따-따-따-따아~'처럼 짧고 강렬한 리듬 패턴이 반복되며 곡의 긴장감과 시대적 메시지를 전달한다.</textarea>
+                    </div>
+
+                    <div class="flex gap-3 justify-center">
+                        <button onclick="resetToTitle()" class="arcade-btn bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-6 py-3 rounded-xl text-sm">
+                            🔄 처음부터 다시 도전
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 하단 컨트롤 패드 (키보드 & 모바일/태블릿 터치 동시 지원) -->
+    <footer class="w-full max-w-4xl mt-2 flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 sm:px-5">
+        <div class="text-[11px] sm:text-xs text-slate-400 flex items-center gap-2">
+            <span class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded text-slate-200 font-mono">SPACE / 위 방향키</span>
+            <span>점프 & 부스터</span>
+            <span class="text-slate-600">|</span>
+            <span class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded text-slate-200 font-mono">Z / S / SHIFT</span>
+            <span>리듬 실드(방어막)</span>
+        </div>
+
+        <!-- 터치 및 클릭 전용 아케이드 대형 버튼 -->
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
+            <button id="btn-jump" onpointerdown="handleAction('JUMP')" class="arcade-btn flex-1 sm:flex-initial bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-400 text-white font-black px-6 py-3 rounded-xl text-xs sm:text-sm tracking-wider">
+                🚀 점프 / 강박 부스터
+            </button>
+            <button id="btn-shield" onpointerdown="handleAction('SHIELD')" class="arcade-btn-amber flex-1 sm:flex-initial bg-amber-600 hover:bg-amber-500 active:bg-amber-400 text-white font-black px-6 py-3 rounded-xl text-xs sm:text-sm tracking-wider">
+                🛡️ 리듬 실드 (방어)
+            </button>
+        </div>
+    </footer>
+
+    <!-- 커스텀 토스트 메시지 박스 (alert 대신 사용) -->
+    <div id="toast-box" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        메시지
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * [1] Web Audio API 기반 8비트 레트로 신시사이저 & 실시간 메트로놈 엔진
+         * 별도 mp3 파일 없이 브라우저 자체 연산으로 정확한 박자와 클래식 선율을 연주합니다.
+         * ============================================================================
+         */
+        class RetroMusicEngine {
+            constructor() {
+                this.ctx = null;
+                this.isPlaying = false;
+                this.bpm = 110;
+                this.beatsPerMeasure = 4;
+                this.currentBeat = 0; // 0, 1, 2, 3...
+                this.nextNoteTime = 0;
+                this.timerID = null;
+                this.stage = 1;
+                this.onBeatCallback = null;
+                this.eighthStep = 0; // 8분음표 단위 스텝 (리듬꼴 연주용)
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // 8비트 칩튠 오실레이터 사운드 생성
+            playTone(freq, duration, type = 'square', volume = 0.12, time = null) {
+                if (!this.ctx || freq <= 0) return;
+                const playTime = time || this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, playTime);
+
+                gain.gain.setValueAtTime(volume, playTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, playTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(playTime);
+                osc.stop(playTime + duration);
+            }
+
+            // 타악기(드럼/메트로놈) 노이즈 및 킥 사운드
+            playPercussion(isAccent, time) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                if (isAccent) {
+                    // 강박: 묵직하고 선명한 하이 킥 + 벨 느낌
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(180, time);
+                    osc.frequency.exponentialRampToValueAtTime(55, time + 0.12);
+                    gain.gain.setValueAtTime(0.28, time);
+                    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.14);
+                } else {
+                    // 약박: 가벼운 틱(Tick) 사운드
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, time);
+                    osc.frequency.exponentialRampToValueAtTime(220, time + 0.06);
+                    gain.gain.setValueAtTime(0.11, time);
+                    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
+                }
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(time);
+                osc.stop(time + 0.15);
+            }
+
+            // 효과음: 점프, 부스터, 실드, 피격
+            playSFX(kind) {
+                this.init();
+                const now = this.ctx.currentTime;
+                if (kind === 'JUMP') {
+                    this.playTone(260, 0.08, 'square', 0.12, now);
+                    this.playTone(390, 0.12, 'square', 0.12, now + 0.06);
+                } else if (kind === 'BOOSTER') {
+                    // 강박 슈퍼 점프 효과음 (화음 아르페지오)
+                    this.playTone(523.25, 0.08, 'square', 0.15, now);
+                    this.playTone(659.25, 0.08, 'square', 0.15, now + 0.05);
+                    this.playTone(783.99, 0.18, 'square', 0.18, now + 0.10);
+                } else if (kind === 'SHIELD') {
+                    this.playTone(880, 0.06, 'triangle', 0.18, now);
+                    this.playTone(1174.66, 0.12, 'triangle', 0.18, now + 0.05);
+                } else if (kind === 'HIT') {
+                    this.playTone(130, 0.25, 'sawtooth', 0.2, now);
+                    this.playTone(95, 0.25, 'sawtooth', 0.2, now + 0.08);
+                }
+            }
+
+            startStageMusic(stageNum, onBeatCallback) {
+                this.init();
+                this.stop();
+                this.stage = stageNum;
+                this.onBeatCallback = onBeatCallback;
+                this.currentBeat = 0;
+                this.eighthStep = 0;
+
+                if (stageNum === 1) {
+                    // Stage 1: 4/4박자 일정한 맥박 (행진곡풍)
+                    this.bpm = 104;
+                    this.beatsPerMeasure = 4;
+                } else if (stageNum === 2) {
+                    // Stage 2: 3/4박자 왈츠 (강-약-약 체감)
+                    this.bpm = 126;
+                    this.beatsPerMeasure = 3;
+                } else if (stageNum === 3) {
+                    // Stage 3: 2/4박자 베토벤 교향곡 5번 '운명' 리듬꼴 (따-따-따-따아~)
+                    this.bpm = 102;
+                    this.beatsPerMeasure = 4;
+                }
+
+                this.isPlaying = true;
+                this.nextNoteTime = this.ctx.currentTime + 0.05;
+                this.scheduler();
+            }
+
+            scheduler() {
+                if (!this.isPlaying) return;
+                // 0.1초 앞까지 미리 오디오 스케줄링 (정확한 박자 유지)
+                while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
+                    this.scheduleStep(this.eighthStep, this.nextNoteTime);
+                    // 8분음표 간격 계산
+                    const secondsPerEighth = (60.0 / this.bpm) / 2;
+                    this.nextNoteTime += secondsPerEighth;
+                    this.eighthStep++;
+                }
+                this.timerID = setTimeout(() => this.scheduler(), 25);
+            }
+
+            scheduleStep(step, time) {
+                const isQuarterBeat = (step % 2 === 0);
+                const beatIndex = Math.floor(step / 2) % this.beatsPerMeasure;
+
+                if (isQuarterBeat) {
+                    const isAccent = (beatIndex === 0);
+                    this.playPercussion(isAccent, time);
+
+                    // UI 및 게임 엔진에 정박 이벤트 전달
+                    const delayMs = Math.max(0, (time - this.ctx.currentTime) * 1000);
+                    setTimeout(() => {
+                        if (this.isPlaying && this.onBeatCallback) {
+                            this.onBeatCallback(beatIndex, isAccent, time);
+                        }
+                    }, delayMs);
+                }
+
+                // 스테이지별 배경 8비트 클래식 모티브 연주
+                if (this.stage === 1 && isQuarterBeat) {
+                    // 4/4박자 안정적인 베이스 라인 (도 - 솔 - 미 - 솔)
+                    const bassNotes = [261.63, 392.00, 329.63, 392.00];
+                    this.playTone(bassNotes[beatIndex], 0.18, 'triangle', 0.1, time);
+                } else if (this.stage === 2 && isQuarterBeat) {
+                    // 3/4박자 왈츠 (쿵-짝-짝: 낮은 으뜸음 + 높은 화음 2번)
+                    if (beatIndex === 0) {
+                        this.playTone(196.00, 0.25, 'triangle', 0.16, time); // 솔 (강)
+                    } else {
+                        this.playTone(392.00, 0.12, 'sine', 0.09, time); // 높은 솔 (약)
+                        this.playTone(493.88, 0.12, 'sine', 0.09, time); // 시 (약)
+                    }
+                } else if (this.stage === 3) {
+                    // 베토벤 운명 동기 (8스텝 주기: 쉬고 - 솔 - 솔 - 솔 - 미b(길게))
+                    const motifStep = step % 8;
+                    if (motifStep === 1 || motifStep === 2 || motifStep === 3) {
+                        this.playTone(392.00, 0.14, 'sawtooth', 0.11, time); // 솔(단단단)
+                    } else if (motifStep === 4) {
+                        this.playTone(311.13, 0.65, 'sawtooth', 0.14, time); // 미b(다아~)
+                    }
+                }
+            }
+
+            stop() {
+                this.isPlaying = false;
+                if (this.timerID) {
+                    clearTimeout(this.timerID);
+                    this.timerID = null;
+                }
+            }
+        }
+
+        /**
+         * ============================================================================
+         * [2] 게임 상태 및 스테이지 교육 데이터 정의
+         * ============================================================================
+         */
+        const STAGE_INFO = {
+            1: {
+                badge: "STAGE 1 : 박(Beat) 체감",
+                subtitle: "일정한 맥박에 맞춰 크레이터를 점프하세요!",
+                bpm: 104,
+                beats: 4,
+                targetObstacles: 8,
+                exp: "일정한 간격으로 다가오는 구덩이를 박자에 맞춰 점프하며 리듬감을 유지했습니다.",
+                concept: "박(Beat) - 음악의 심장박동처럼 일정한 시간 간격으로 흐르는 기본 단위입니다.",
+                tip: "시대별 음악을 들을 때 먼저 발끝으로 일정한 '박'을 짚어보면 곡의 안정감이나 긴장감을 쉽게 파악할 수 있습니다.",
+                quizQ: "Q1. 방금 1단계에서 탐사 차량이 구덩이를 넘기 위해 맞춘 '일정한 시간 간격의 기본 맥박'을 무엇이라 할까요?",
+                options: [
+                    { text: "① 박 (Beat)", correct: true },
+                    { text: "② 음색 (Timbre)", correct: false }
+                ]
+            },
+            2: {
+                badge: "STAGE 2 : 박자(Meter) & 강박",
+                subtitle: "3박자(강-약-약)! '1번 램프(강박)'에서 점프해 큰 바위를 넘으세요!",
+                bpm: 126,
+                beats: 3,
+                targetObstacles: 8,
+                exp: "'하나-둘-셋(강-약-약)' 중 첫 번째 강박 타이밍에 점프해 2단 부스터로 거대한 바위를 뛰어넘었습니다.",
+                concept: "박자(Meter) - 강박과 약박이 규칙적으로 묶인 틀입니다. (3/4박자: 강-약-약 왈츠 리듬)",
+                tip: "낭만주의 시대 왈츠나 민속 춤곡을 감상할 때 '강-약-약'의 3박자 흔들림을 찾으면 춤추는 장면을 떠올릴 수 있습니다.",
+                quizQ: "Q2. 방금 2단계에서 거대 바위를 넘는 슈퍼 부스터가 발동된 타이밍은 언제였나요?",
+                options: [
+                    { text: "① 세 박자마다 돌아오는 첫 번째 '강박'", correct: true },
+                    { text: "② 아무 때나 연타할 때", correct: false }
+                ]
+            },
+            3: {
+                badge: "STAGE 3 : 리듬꼴(Rhythm Motif)",
+                subtitle: "적의 공격 리듬 [따-따-따-따아~]에 맞춰 '리듬 실드'를 켜세요!",
+                bpm: 102,
+                beats: 4,
+                targetObstacles: 7,
+                exp: "짧은 음 3개와 긴 음 1개로 이루어진 '따-따-따-따아~' 리듬 패턴을 듣고 방어막으로 튕겨냈습니다.",
+                concept: "리듬꼴(Rhythm Motif) - 길고 짧은 음들이 모여 만드는 독특한 리듬 조각으로, 곡의 핵심 메시지를 전달합니다.",
+                tip: "베토벤 교향곡 5번 '운명'처럼 강렬한 리듬꼴이 반복되면 청중에게 역경과 투쟁 같은 시대적 메시지를 각인시킵니다.",
+                quizQ: "Q3. 베토벤이 '운명이 문을 두드리는 소리'처럼 곡 전체에 반복해 긴장감을 준 짧은 리듬 패턴은?",
+                options: [
+                    { text: "① 리듬꼴 (Rhythm Motif)", correct: true },
+                    { text: "② 셈여림 (Dynamics)", correct: false }
+                ]
+            }
+        };
+
+        const musicEngine = new RetroMusicEngine();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 게임 상태 객체
+        let gameState = {
+            mode: 'MENU', // MENU, PLAYING, BRIEFING, FINISH
+            stage: 1,
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            currentBeat: 0,
+            lastBeatTime: 0,
+            beatIntervalSec: 60 / 104,
+            obstaclesCleared: 0,
+            spawnTimer: 0,
+            rover: {
+                x: 110,
+                y: 0,
+                vy: 0,
+                width: 48,
+                height: 28,
+                isGrounded: true,
+                isBooster: false,
+                shieldTimer: 0,
+                wheelAngle: 0
+            },
+            obstacles: [], // { type: 'CRATER' | 'BOULDER' | 'LASER', x, width, height, passed, hit, motifNotes }
+            particles: [],
+            floatingTexts: [],
+            stars: []
+        };
+
+        // 캔버스 해상도 반응형 조정
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            if (gameState.rover.isGrounded) {
+                gameState.rover.y = getGroundY() - gameState.rover.height;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function getGroundY() {
+            return canvas.height * 0.78;
+        }
+
+        // 배경 별빛 초기화
+        function initStars() {
+            gameState.stars = [];
+            for (let i = 0; i < 45; i++) {
+                gameState.stars.push({
+                    x: Math.random() * 1000,
+                    y: Math.random() * 400,
+                    size: Math.random() > 0.7 ? 2.5 : 1.5,
+                    speed: 0.3 + Math.random() * 0.7
+                });
+            }
+        }
+
+        // 토스트 알림 표시 (alert 대체)
+        function showToast(msg, colorClass = 'bg-emerald-600') {
+            const toast = document.getElementById('toast-box');
+            toast.textContent = msg;
+            toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 ${colorClass} text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-full shadow-xl transition-opacity duration-300 z-50 opacity-100`;
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2200);
+        }
+
+        /**
+         * ============================================================================
+         * [3] 스테이지 진행 및 박자 동기화 로직
+         * ============================================================================
+         */
+        function startGame(stageNum) {
+            document.getElementById('overlay-start').classList.add('hidden');
+            document.getElementById('overlay-briefing').classList.add('hidden');
+            document.getElementById('overlay-finish').classList.add('hidden');
+
+            gameState.mode = 'PLAYING';
+            gameState.stage = stageNum;
+            gameState.obstaclesCleared = 0;
+            gameState.obstacles = [];
+            gameState.particles = [];
+            gameState.floatingTexts = [];
+            gameState.spawnTimer = 1.2;
+
+            const info = STAGE_INFO[stageNum];
+            gameState.beatIntervalSec = 60 / info.bpm;
+
+            // UI 업데이트
+            document.getElementById('hud-stage').textContent = `${stageNum} / 3`;
+            document.getElementById('stage-badge').textContent = info.badge;
+            document.getElementById('stage-subtitle').textContent = info.subtitle;
+
+            // 박자 램프 개수 조정 (Stage 2는 3박자, 나머지는 4박자)
+            const lamps = document.querySelectorAll('.beat-lamp');
+            lamps.forEach((lamp, idx) => {
+                if (idx < info.beats) {
+                    lamp.classList.remove('hidden');
+                } else {
+                    lamp.classList.add('hidden');
+                }
+            });
+
+            resizeCanvas();
+            gameState.rover.y = getGroundY() - gameState.rover.height;
+            gameState.rover.vy = 0;
+            gameState.rover.isGrounded = true;
+            gameState.rover.shieldTimer = 0;
+
+            // 음악 엔진 가동
+            musicEngine.startStageMusic(stageNum, (beatIndex, isAccent) => {
+                onBeatTick(beatIndex, isAccent);
+            });
+        }
+
+        // 매 박자(Beat)마다 호출되는 콜백
+        function onBeatTick(beatIndex, isAccent) {
+            gameState.currentBeat = beatIndex;
+            gameState.lastBeatTime = performance.now() / 1000;
+
+            // 상단 박자 램프 점등
+            const lamps = document.querySelectorAll('.beat-lamp');
+            lamps.forEach((lamp, idx) => {
+                lamp.classList.remove('bg-rose-500', 'bg-cyan-500', 'text-white', 'border-white', 'beat-active');
+                lamp.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-600');
+
+                if (idx === beatIndex) {
+                    lamp.classList.remove('bg-slate-800', 'text-slate-400', 'border-slate-600');
+                    lamp.classList.add(isAccent ? 'bg-rose-500' : 'bg-cyan-500', 'text-white', 'border-white', 'beat-active');
+                }
+            });
+
+            // 박자에 맞춘 장애물 스폰 로직
+            if (gameState.mode === 'PLAYING' && gameState.obstaclesCleared + gameState.obstacles.length < STAGE_INFO[gameState.stage].targetObstacles) {
+                // 4박자 또는 3박자 마디의 첫 박(강박)마다 장애물 생성하여 리듬감 있게 배치
+                if (beatIndex === 0) {
+                    spawnStageObstacle();
+                }
+            }
+        }
+
+        function spawnStageObstacle() {
+            const stage = gameState.stage;
+            const spawnX = canvas.width + 60;
+
+            if (stage === 1) {
+                // Stage 1: 일정한 크레이터(구덩이) - 정박 점프 유도
+                gameState.obstacles.push({
+                    type: 'CRATER',
+                    x: spawnX,
+                    width: 58,
+                    height: 24,
+                    passed: false,
+                    hit: false
+                });
+            } else if (stage === 2) {
+                // Stage 2: 3박자 강박 부스터로 넘어야 하는 거대 운석 바위
+                gameState.obstacles.push({
+                    type: 'BOULDER',
+                    x: spawnX,
+                    width: 54,
+                    height: 58,
+                    passed: false,
+                    hit: false
+                });
+            } else if (stage === 3) {
+                // Stage 3: 적 UFO가 발사하는 베토벤 운명 리듬 탄막 (실드로 방어)
+                gameState.obstacles.push({
+                    type: 'LASER',
+                    x: spawnX,
+                    width: 95,
+                    height: 36,
+                    passed: false,
+                    hit: false
+                });
+            }
+        }
+
+        /**
+         * ============================================================================
+         * [4] 플레이어 입력 처리 (점프, 강박 부스터, 리듬 실드)
+         * ============================================================================
+         */
+        function handleAction(actionType) {
+            if (gameState.mode !== 'PLAYING') return;
+
+            const nowSec = performance.now() / 1000;
+            // 가장 가까운 정박과의 시간 오차 계산
+            const timeSinceBeat = nowSec - gameState.lastBeatTime;
+            const timeToNextBeat = gameState.beatIntervalSec - timeSinceBeat;
+            const minOffset = Math.min(Math.abs(timeSinceBeat), Math.abs(timeToNextBeat));
+            const isOnBeat = minOffset <= 0.16; // ±160ms 이내면 정박 판정
+
+            if (actionType === 'JUMP') {
+                if (gameState.rover.isGrounded) {
+                    // Stage 2에서 1번 강박(currentBeat === 0) 근처에 점프하면 슈퍼 부스터 발동!
+                    const isStrongBeat = (gameState.currentBeat === 0 && timeSinceBeat < 0.22) || 
+                                         (gameState.currentBeat === STAGE_INFO[gameState.stage].beats - 1 && timeToNextBeat < 0.22);
+
+                    if (gameState.stage === 2 && isStrongBeat) {
+                        gameState.rover.vy = -660;
+                        gameState.rover.isBooster = true;
+                        musicEngine.playSFX('BOOSTER');
+                        addFloatingText(gameState.rover.x, gameState.rover.y - 20, "강박 부스터! PERFECT!", "#fbbf24");
+                        createParticles(gameState.rover.x + 20, gameState.rover.y + 28, "#f59e0b", 16);
+                    } else {
+                        gameState.rover.vy = -480;
+                        gameState.rover.isBooster = false;
+                        musicEngine.playSFX('JUMP');
+                        if (isOnBeat) {
+                            addFloatingText(gameState.rover.x, gameState.rover.y - 15, "ON BEAT!", "#38bdf8");
+                        }
+                    }
+                    gameState.rover.isGrounded = false;
+                }
+            } else if (actionType === 'SHIELD') {
+                // 리듬 실드 활성화 (0.45초 지속)
+                gameState.rover.shieldTimer = 0.45;
+                musicEngine.playSFX('SHIELD');
+                createParticles(gameState.rover.x + 24, gameState.rover.y + 14, "#34d399", 10);
+            }
+        }
+
+        // 키보드 이벤트 바인딩
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                e.preventDefault();
+                if (gameState.mode === 'MENU') {
+                    startGame(1);
+                } else if (gameState.mode === 'PLAYING') {
+                    handleAction('JUMP');
+                }
+            } else if (e.code === 'KeyZ' || e.code === 'KeyS' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                e.preventDefault();
+                if (gameState.mode === 'PLAYING') {
+                    handleAction('SHIELD');
+                }
+            }
+        });
+
+        /**
+         * ============================================================================
+         * [5] 물리 연산, 충돌 판정 및 스테이지 완료 처리
+         * ============================================================================
+         */
+        let lastFrameTime = performance.now();
+
+        function update(dt) {
+            if (gameState.mode !== 'PLAYING') return;
+
+            const groundY = getGroundY();
+            const rover = gameState.rover;
+            const speed = gameState.stage === 2 ? 320 : 285;
+
+            // 탐사 차량 바퀴 회전 및 중력 적용
+            rover.wheelAngle += dt * 12;
+            if (!rover.isGrounded) {
+                rover.vy += 1350 * dt; // 중력 가속도
+                rover.y += rover.vy * dt;
+
+                if (rover.y >= groundY - rover.height) {
+                    rover.y = groundY - rover.height;
+                    rover.vy = 0;
+                    rover.isGrounded = true;
+                    rover.isBooster = false;
+                }
+            }
+
+            if (rover.shieldTimer > 0) {
+                rover.shieldTimer -= dt;
+            }
+
+            // 배경 별 스크롤
+            gameState.stars.forEach(star => {
+                star.x -= star.speed * speed * 0.25 * dt;
+                if (star.x < 0) star.x = canvas.width;
+            });
+
+            // 장애물 이동 및 판정
+            for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
+                const obs = gameState.obstacles[i];
+                obs.x -= speed * dt;
+
+                // 충돌 박스 계산
+                const rBox = { x: rover.x + 6, y: rover.y + 4, w: rover.width - 12, h: rover.height - 6 };
+                let oBox = { x: obs.x + 6, y: groundY - obs.height, w: obs.width - 12, h: obs.height };
+
+                if (obs.type === 'CRATER') {
+                    // 구덩이는 바닥에 있을 때만 빠짐
+                    oBox = { x: obs.x + 12, y: groundY - 6, w: obs.width - 24, h: 20 };
+                } else if (obs.type === 'LASER') {
+                    // 공중에서 날아오는 리듬 탄막
+                    oBox = { x: obs.x + 8, y: groundY - 46, w: obs.width - 16, h: 30 };
+                }
+
+                // 충돌 체크
+                const isColliding = (
+                    rBox.x < oBox.x + oBox.w &&
+                    rBox.x + rBox.w > oBox.x &&
+                    rBox.y < oBox.y + oBox.h &&
+                    rBox.y + rBox.h > oBox.y
+                );
+
+                if (isColliding && !obs.hit && !obs.passed) {
+                    if (obs.type === 'LASER' && rover.shieldTimer > 0) {
+                        // 리듬 실드로 탄막 방어 성공!
+                        obs.passed = true;
+                        onObstacleSuccess(obs.x, groundY - 50, "리듬 실드 방어! +200", 200);
+                        createParticles(obs.x, groundY - 35, "#10b981", 22);
+                    } else {
+                        // 피격 처리 (게임 오버 대신 콤보 초기화 & 격려 피드백으로 수업 흐름 유지)
+                        obs.hit = true;
+                        gameState.combo = 0;
+                        updateHUD();
+                        musicEngine.playSFX('HIT');
+                        addFloatingText(rover.x, rover.y - 25, "박자를 다시 들어보세요!", "#fb7185");
+                        createParticles(rover.x + 20, rover.y + 15, "#f43f5e", 18);
+                        gameState.obstaclesCleared++;
+                    }
+                }
+
+                // 무사히 통과했을 때
+                if (!obs.passed && !obs.hit && obs.x + obs.width < rover.x) {
+                    obs.passed = true;
+                    const bonus = rover.isBooster ? 250 : 150;
+                    const label = rover.isBooster ? "강박 점프 성공! +250" : "박자 통과! +150";
+                    onObstacleSuccess(rover.x, rover.y - 20, label, bonus);
+                }
+
+                // 화면 밖 제거
+                if (obs.x + obs.width < -50) {
+                    gameState.obstacles.splice(i, 1);
+                }
+            }
+
+            // 파티클 및 플로팅 텍스트 업데이트
+            updateEffects(dt);
+
+            // 스테이지 목표 달성 체크
+            const target = STAGE_INFO[gameState.stage].targetObstacles;
+            if (gameState.obstaclesCleared >= target && gameState.obstacles.length === 0) {
+                completeCurrentStage();
+            }
+        }
+
+        function onObstacleSuccess(x, y, text, pts) {
+            gameState.combo++;
+            if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+            gameState.score += pts + (gameState.combo * 10);
+            gameState.obstaclesCleared++;
+            updateHUD();
+            addFloatingText(x, y, text, "#34d399");
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-combo').textContent = gameState.combo;
+            document.getElementById('hud-score').textContent = String(gameState.score).padStart(5, '0');
+        }
+
+        /**
+         * ============================================================================
+         * [6] 스테이지 클리어 브리핑 (체감 → 음악 개념 명명 스캐폴딩)
+         * ============================================================================
+         */
+        function completeCurrentStage() {
+            gameState.mode = 'BRIEFING';
+            musicEngine.stop();
+
+            const info = STAGE_INFO[gameState.stage];
+            document.getElementById('briefing-exp').textContent = info.exp;
+            document.getElementById('briefing-concept').textContent = info.concept;
+            document.getElementById('briefing-tip').textContent = info.tip;
+            document.getElementById('briefing-quiz-q').textContent = info.quizQ;
+
+            const optionsBox = document.getElementById('briefing-quiz-options');
+            optionsBox.innerHTML = '';
+
+            const nextBtn = document.getElementById('btn-next-stage');
+            nextBtn.disabled = true;
+            nextBtn.className = "w-full py-3 rounded-xl font-black text-sm bg-slate-700 text-slate-400 cursor-not-allowed transition-all";
+            nextBtn.textContent = "위 확인 문제를 맞히면 다음 스테이지가 열립니다 🔒";
+
+            info.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "p-3 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-bold transition-all text-left";
+                btn.textContent = opt.text;
+                btn.onclick = () => {
+                    if (opt.correct) {
+                        btn.className = "p-3 rounded-xl border-2 border-emerald-400 bg-emerald-900/60 text-emerald-200 text-xs sm:text-sm font-bold text-left";
+                        musicEngine.playSFX('BOOSTER');
+                        nextBtn.disabled = false;
+                        nextBtn.className = "w-full py-3 rounded-xl font-black text-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-lg transition-all";
+                        nextBtn.textContent = gameState.stage < 3 
+                            ? `▶ STAGE ${gameState.stage + 1} 탐사 출발하기` 
+                            : "🏆 최종 음악 탐사 리포트 확인하기";
+                    } else {
+                        btn.className = "p-3 rounded-xl border-2 border-rose-500 bg-rose-950/60 text-rose-300 text-xs sm:text-sm font-bold text-left";
+                        musicEngine.playSFX('HIT');
+                        showToast("다시 한번 위 '음악 개념' 박스를 읽어보세요!", "bg-rose-600");
+                    }
+                };
+                optionsBox.appendChild(btn);
+            });
+
+            document.getElementById('overlay-briefing').classList.remove('hidden');
+        }
+
+        function proceedNextStage() {
+            if (gameState.stage < 3) {
+                startGame(gameState.stage + 1);
+            } else {
+                gameState.mode = 'FINISH';
+                document.getElementById('overlay-briefing').classList.add('hidden');
+                document.getElementById('final-score').textContent = gameState.score;
+                document.getElementById('final-combo').textContent = gameState.maxCombo;
+                document.getElementById('overlay-finish').classList.remove('hidden');
+                musicEngine.playSFX('BOOSTER');
+            }
+        }
+
+        function resetToTitle() {
+            musicEngine.stop();
+            gameState.mode = 'MENU';
+            gameState.score = 0;
+            gameState.combo = 0;
+            updateHUD();
+            document.getElementById('overlay-finish').classList.add('hidden');
+            document.getElementById('overlay-start').classList.remove('hidden');
+        }
+
+        // 클립보드 복사 (iFrame 호환 document.execCommand 사용)
+        function copySummaryNote() {
+            const textarea = document.getElementById('summary-note');
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                showToast("감상문 서술 힌트가 클립보드에 복사되었습니다! 활동지에 붙여넣으세요.");
+            } catch (err) {
+                showToast("복사에 실패했습니다. 직접 드래그하여 복사해 주세요.", "bg-rose-600");
+            }
+        }
+
+        /**
+         * ============================================================================
+         * [7] 레트로 픽셀 아트 및 시각 파형 렌더링 엔진
+         * ============================================================================
+         */
+        function addFloatingText(x, y, text, color) {
+            gameState.floatingTexts.push({ x, y, text, color, alpha: 1.0 });
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                gameState.particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 240,
+                    vy: (Math.random() - 0.8) * 240,
+                    size: 3 + Math.random() * 4,
+                    color,
+                    life: 0.5 + Math.random() * 0.3
+                });
+            }
+        }
+
+        function updateEffects(dt) {
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.life -= dt;
+                if (p.life <= 0) gameState.particles.splice(i, 1);
+            }
+            for (let i = gameState.floatingTexts.length - 1; i >= 0; i--) {
+                const ft = gameState.floatingTexts[i];
+                ft.y -= 45 * dt;
+                ft.alpha -= 1.1 * dt;
+                if (ft.alpha <= 0) gameState.floatingTexts.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const groundY = getGroundY();
+
+            // 1. 밤하늘 배경 그라데이션
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+            if (gameState.stage === 1) {
+                bgGrad.addColorStop(0, '#020617');
+                bgGrad.addColorStop(1, '#0f172a');
+            } else if (gameState.stage === 2) {
+                bgGrad.addColorStop(0, '#1e1b4b');
+                bgGrad.addColorStop(1, '#311042');
+            } else {
+                bgGrad.addColorStop(0, '#1f0913');
+                bgGrad.addColorStop(1, '#090d16');
+            }
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // 2. 반짝이는 별 & 원경 산맥
+            ctx.fillStyle = '#e2e8f0';
+            gameState.stars.forEach(s => {
+                ctx.fillRect(s.x % w, s.y % (groundY - 40), s.size, s.size);
+            });
+
+            // 3. Stage 3 상단 적 UFO (베토벤 운명 리듬 발사체 모선)
+            if (gameState.stage === 3 && gameState.mode === 'PLAYING') {
+                drawEnemyUFO(w - 130, 65 + Math.sin(performance.now() / 250) * 8);
+            }
+
+            // 4. 행성 지면 및 레트로 그리드 바닥
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, groundY, w, h - groundY);
+
+            // 네온 지평선
+            ctx.strokeStyle = gameState.stage === 1 ? '#22d3ee' : (gameState.stage === 2 ? '#fbbf24' : '#f43f5e');
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(w, groundY);
+            ctx.stroke();
+
+            // 지면 스크롤 눈금 (박자 시각화)
+            const offset = (performance.now() * 0.28) % 60;
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+            ctx.lineWidth = 2;
+            for (let gx = -offset; gx < w; gx += 60) {
+                ctx.beginPath();
+                ctx.moveTo(gx, groundY);
+                ctx.lineTo(gx - 25, h);
+                ctx.stroke();
+            }
+
+            // 5. 장애물 렌더링
+            gameState.obstacles.forEach(obs => {
+                if (obs.type === 'CRATER') {
+                    // 구덩이 (크레이터)
+                    ctx.fillStyle = '#020617';
+                    ctx.fillRect(obs.x, groundY - 2, obs.width, h - groundY + 4);
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(obs.x, groundY - 2, obs.width, 16);
+                    // 가이드 라벨
+                    ctx.fillStyle = '#7dd3fc';
+                    ctx.font = 'bold 11px "Noto Sans KR"';
+                    ctx.fillText('정박 점프!', obs.x + 4, groundY + 28);
+                } else if (obs.type === 'BOULDER') {
+                    // 거대 바위 (3박자 강박 부스터 필요)
+                    ctx.fillStyle = '#b45309';
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x, groundY);
+                    ctx.lineTo(obs.x + 12, groundY - obs.height);
+                    ctx.lineTo(obs.x + obs.width - 10, groundY - obs.height + 8);
+                    ctx.lineTo(obs.x + obs.width, groundY);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fde68a';
+                    ctx.font = 'bold 11px "Noto Sans KR"';
+                    ctx.fillText('1박 강박!', obs.x + 4, groundY - obs.height - 8);
+                } else if (obs.type === 'LASER') {
+                    // 베토벤 운명 리듬꼴 음표 탄막 (따-따-따-따아~)
+                    const ly = groundY - 42;
+                    ctx.fillStyle = 'rgba(244, 63, 94, 0.25)';
+                    ctx.fillRect(obs.x, ly, obs.width, 28);
+                    ctx.strokeStyle = '#fb7185';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(obs.x, ly, obs.width, 28);
+
+                    // 4개의 리듬 음표 도트 (짧게 3개 + 길게 1개)
+                    ctx.fillStyle = '#ffe4e6';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + 14, ly + 14, 4, 0, Math.PI * 2);
+                    ctx.arc(obs.x + 28, ly + 14, 4, 0, Math.PI * 2);
+                    ctx.arc(obs.x + 42, ly + 14, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillRect(obs.x + 54, ly + 10, 30, 8); // 긴 음표
+
+                    ctx.fillStyle = '#fda4af';
+                    ctx.font = 'bold 11px "Noto Sans KR"';
+                    ctx.fillText('따-따-따-따아~ [실드!]', obs.x - 10, ly - 8);
+                }
+            });
+
+            // 6. 플레이어 문 패트롤 탐사 차량 렌더링
+            drawRover(gameState.rover);
+
+            // 7. 파티클 및 점수 플로팅 텍스트
+            gameState.particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+
+            gameState.floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, ft.alpha);
+                ctx.fillStyle = ft.color;
+                ctx.font = '900 14px "Noto Sans KR"';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            });
+        }
+
+        function drawRover(r) {
+            ctx.save();
+            ctx.translate(r.x, r.y);
+
+            // 부스터 불꽃 이펙트
+            if (r.isBooster) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.moveTo(8, r.height - 4);
+                ctx.lineTo(24, r.height + 22 + Math.random() * 10);
+                ctx.lineTo(40, r.height - 4);
+                ctx.fill();
+            }
+
+            // 차체 (레트로 8비트 스타일)
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(4, 8, r.width - 8, 12);
+            // 조종석 돔
+            ctx.fillStyle = '#bae6fd';
+            ctx.fillRect(14, 1, 20, 8);
+            // 레이저 포탑
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(22, -4, 6, 6);
+
+            // 바퀴 3개 (문 패트롤 시그니처)
+            const wheelPositions = [10, 24, 38];
+            wheelPositions.forEach(wx => {
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(wx, r.height - 4, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // 리듬 실드 보호막 이펙트
+            if (r.shieldTimer > 0) {
+                ctx.strokeStyle = '#34d399';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(r.width / 2, r.height / 2, 34, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(52, 211, 153, 0.18)';
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function drawEnemyUFO(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = '#be123c';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 36, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fda4af';
+            ctx.beginPath();
+            ctx.arc(0, -6, 14, Math.PI, 0);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px "Noto Sans KR"';
+            ctx.fillText('베토벤 UFO', -26, -24);
+            ctx.restore();
+        }
+
+        // 메인 애니메이션 루프
+        function gameLoop(now) {
+            const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+            lastFrameTime = now;
+
+            update(dt);
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 초기 실행
+        window.onload = () => {
+            resizeCanvas();
+            initStars();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

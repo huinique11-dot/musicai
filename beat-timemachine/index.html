@@ -11,8 +11,10 @@
 <style>
 /* Layout: one fixed 1280x720 arcade cabinet screen, scaled to fit; HTML overlays sit on top of the canvas. */
 :root{
-  --void:#08071a; --panel:#141233; --panel2:#1d1a47; --ink:#f4f1ff; --dim:#a7a2d6;
-  --gold:#ffd34d; --hot:#ff3d6e; --cyan:#45d4ff; --mint:#7dffb0;
+  /* 크리스마스 팔레트: 와인 · 크림슨 · 에버그린 · 골드 · 블러시 핑크 · 크림 */
+  --void:#160a10; --panel:#2a111b; --panel2:#3a1624; --ink:#fbf3ec; --dim:#d4b6b6;
+  --gold:#efcb66; --hot:#c92f55; --cyan:#f0aec4; --mint:#a2d18f;
+  --line:#6b2a3d; --line2:#9e6a3a; --well:#1d0c14; --pine:#285c33;
   --f-pixel:'Press Start 2P', ui-monospace, monospace;
   --f-head:'Black Han Sans', 'Do Hyeon', 'Malgun Gothic', sans-serif;
   --f-body:'Do Hyeon', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
@@ -20,43 +22,43 @@
 }
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;background:var(--void);color:var(--ink);overflow:hidden;font-family:var(--f-body)}
-#fit{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,#15123a 0%,var(--void) 70%)}
-#cab{position:relative;width:1280px;height:720px;transform-origin:center center;flex:none;box-shadow:0 0 0 4px #2b2766,0 0 60px #2b276680}
+#fit{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 15% 0%,rgba(165,21,51,.38),transparent 55%),radial-gradient(ellipse at 85% 100%,rgba(40,92,51,.42),transparent 55%),radial-gradient(ellipse at center,#2a1119 0%,var(--void) 75%)}
+#cab{position:relative;width:1280px;height:720px;transform-origin:center center;flex:none;box-shadow:0 0 0 4px var(--line2),0 0 0 7px var(--pine),0 0 70px rgba(239,203,102,.35)}
 canvas{display:block;width:1280px;height:720px;image-rendering:pixelated;cursor:crosshair;touch-action:none}
 #scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.16) 2px 3px);mix-blend-mode:multiply}
-.ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,7,26,.82);backdrop-filter:blur(2px)}
+.ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(22,10,16,.80);backdrop-filter:blur(2px)}
 .ov[hidden]{display:none!important}
-.box{background:var(--panel);border:4px solid #3b3690;box-shadow:0 0 0 4px var(--void),8px 8px 0 4px #000;padding:28px 34px;max-width:1120px;width:calc(100% - 120px);max-height:640px;overflow:auto}
+.box{position:relative;background:linear-gradient(180deg,var(--panel2) 0%,var(--panel) 140px);border:4px solid var(--line);box-shadow:0 0 0 4px var(--void),8px 8px 0 4px #000;padding:28px 34px;max-width:1120px;width:calc(100% - 120px);max-height:640px;overflow:auto}
 h1,h2,h3{font-family:var(--f-head);font-weight:400;margin:0;text-wrap:balance}
-.logo{font-family:var(--f-pixel);font-size:40px;color:var(--gold);text-shadow:4px 4px 0 var(--hot),8px 8px 0 #000;letter-spacing:2px;line-height:1.2}
+.logo{font-family:var(--f-pixel);font-size:40px;color:var(--gold);text-shadow:4px 4px 0 var(--hot),8px 8px 0 #000,0 0 22px rgba(239,203,102,.55);animation:logoGlow 2.4s ease-in-out infinite;letter-spacing:2px;line-height:1.2}
 .sub{font-size:22px;color:var(--dim);margin-top:10px}
 .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:22px}
-.card{all:unset;box-sizing:border-box;cursor:pointer;background:var(--panel2);border:3px solid #3b3690;padding:14px 12px 12px;display:flex;flex-direction:column;gap:6px;min-height:250px;transition:transform .12s,border-color .12s}
+.card{all:unset;box-sizing:border-box;cursor:pointer;background:var(--panel2);border:3px solid var(--line);padding:14px 12px 12px;display:flex;flex-direction:column;gap:6px;min-height:250px;transition:transform .12s,border-color .12s}
 .card:hover,.card:focus-visible{transform:translateY(-4px);border-color:var(--gold);outline:none}
 .card .num{font-family:var(--f-pixel);font-size:11px;color:var(--dim)}
 .card .era{font-family:var(--f-head);font-size:30px}
 .card .yrs{font-family:var(--f-pixel);font-size:10px;color:var(--gold)}
 .card .piece{font-size:17px;color:var(--ink);line-height:1.25;min-height:44px}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto}
-.chip{font-size:15px;padding:2px 7px;background:#0d0b26;border:2px solid #3b3690;color:var(--mint)}
+.chip{font-size:15px;padding:2px 7px;background:var(--well);border:2px solid var(--line);color:var(--mint)}
 .best{font-size:15px;color:var(--dim);margin-top:4px}
 .best b{font-family:var(--f-pixel);font-size:11px}
 .best b{color:var(--gold);font-weight:400}
 .row{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 22px;margin-top:20px;font-size:19px;color:var(--dim)}
-kbd{font-family:var(--f-pixel);font-size:11px;color:var(--ink);background:#0d0b26;border:2px solid #5a54c4;border-bottom-width:4px;padding:4px 7px;margin-right:6px;display:inline-block}
+kbd{font-family:var(--f-pixel);font-size:11px;color:var(--ink);background:var(--well);border:2px solid var(--line2);border-bottom-width:4px;padding:4px 7px;margin-right:6px;display:inline-block}
 .btn{all:unset;cursor:pointer;font-family:var(--f-head);font-size:24px;padding:10px 22px;background:var(--gold);color:#1b1300;box-shadow:4px 4px 0 #000;border:3px solid #000}
-.btn.ghost{background:transparent;color:var(--ink);border-color:#5a54c4}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
 .btn:hover,.btn:focus-visible{filter:brightness(1.12);outline:3px solid var(--cyan);outline-offset:2px}
 #who{display:flex;align-items:center;gap:10px;font-size:19px;margin-top:10px;color:var(--ink)}
-#who .tag{font-size:16px;padding:2px 8px;border:2px solid #3b3690;background:#0d0b26}
+#who .tag{font-size:16px;padding:2px 8px;border:2px solid var(--line);background:var(--well)}
 #who .tag.ok{color:var(--mint);border-color:var(--mint)}
 #who .tag.other{color:var(--gold);border-color:var(--gold)}
 .linkbtn{all:unset;cursor:pointer;font-size:16px;color:var(--cyan);text-decoration:underline}
 .linkbtn:focus-visible{outline:3px solid var(--cyan)}
 .form{display:grid;grid-template-columns:150px 1fr;gap:12px 16px;align-items:center;margin-top:20px}
 .form label{font-family:var(--f-head);font-size:22px}
-.form input{box-sizing:border-box;width:100%;background:#0d0b26;color:var(--ink);border:3px solid #5a54c4;font-family:var(--f-pixel);font-size:18px;padding:10px 12px}
+.form input{box-sizing:border-box;width:100%;background:var(--well);color:var(--ink);border:3px solid var(--line2);font-family:var(--f-pixel);font-size:18px;padding:10px 12px}
 .form input#fNick{font-family:var(--f-body);font-size:22px}
 .form input:focus{outline:3px solid var(--cyan);outline-offset:1px}
 .form .hint{grid-column:2;font-size:16px;color:var(--dim);margin-top:-6px}
@@ -71,7 +73,7 @@ label.tog input{width:20px;height:20px;accent-color:var(--gold)}
 .story{font-size:20px;line-height:1.55;color:var(--ink);margin-top:14px}
 .mech{display:flex;flex-direction:column;gap:10px}
 .mech h3,.deb h3{font-size:22px;color:var(--gold)}
-.m{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start;background:#0d0b26;border:2px solid #2e2a78;padding:10px 12px}
+.m{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start;background:var(--well);border:2px solid var(--line);padding:10px 12px}
 .m .el{font-family:var(--f-head);font-size:20px;color:var(--mint)}
 .m .how{font-size:18px;line-height:1.4}
 .res{display:grid;grid-template-columns:260px 1fr;gap:30px}
@@ -79,11 +81,11 @@ label.tog input{width:20px;height:20px;accent-color:var(--gold)}
 .stats{display:grid;grid-template-columns:1fr auto;gap:6px 14px;margin-top:20px;font-size:19px}
 .stats span:nth-child(even){font-family:var(--f-pixel);font-size:13px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;align-self:center}
 .deb ul{margin:8px 0 0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.deb li{font-size:19px;line-height:1.45;background:#0d0b26;border-left:6px solid var(--mint);padding:8px 12px}
+.deb li{font-size:19px;line-height:1.45;background:var(--well);border-left:6px solid var(--mint);padding:8px 12px}
 .deb li b{color:var(--gold);font-weight:400}
 .reflect{margin-top:16px}
 .reflect p{font-size:19px;color:var(--cyan);margin:6px 0}
-textarea{width:100%;box-sizing:border-box;min-height:64px;background:#0d0b26;color:var(--ink);border:2px solid #5a54c4;font-family:var(--f-body);font-size:19px;padding:8px;resize:vertical}
+textarea{width:100%;box-sizing:border-box;min-height:64px;background:var(--well);color:var(--ink);border:2px solid var(--line2);font-family:var(--f-body);font-size:19px;padding:8px;resize:vertical}
 textarea:focus{outline:3px solid var(--cyan)}
 .small{font-size:16px;color:var(--dim)}
 #pwr{position:absolute;left:70px;bottom:40px;width:150px;height:150px;border-radius:50%;border:5px solid #000;background:var(--hot);color:#fff;font-family:var(--f-head);font-size:26px;box-shadow:6px 6px 0 #000;display:none;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -91,11 +93,32 @@ textarea:focus{outline:3px solid var(--cyan)}
 @media (pointer:coarse){#pwr.show{display:block}}
 #rot{position:fixed;inset:0;display:none;place-items:center;text-align:center;background:var(--void);font-size:24px;padding:24px;z-index:9}
 @media (orientation:portrait) and (max-width:700px){#rot{display:grid}}
-@media (prefers-reduced-motion:reduce){.card{transition:none}}
+/* ===== 크리스마스 반짝이 장식 ===== */
+@keyframes logoGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25) drop-shadow(0 0 6px #fff3c4)}}
+.card .era{color:var(--ink)}
+.card:hover,.card:focus-visible{box-shadow:0 0 18px rgba(239,203,102,.45)}
+.btn{background:linear-gradient(180deg,#f6df9a,var(--gold) 45%,#cf9d2d)}
+.btn.ghost{background:transparent}
+.btn:hover,.btn:focus-visible{outline-color:var(--cyan)}
+.chip{border-color:var(--pine)}
+.box{padding-top:38px}
+.box::before,.box::after{content:"";position:absolute;left:12px;right:12px;top:8px;height:14px;pointer-events:none;filter:drop-shadow(0 0 4px rgba(255,220,150,.8))}
+.box::before{background:radial-gradient(circle at 7px 7px,#e26683 0 4px,transparent 5px) 0 0/42px 14px repeat-x,radial-gradient(circle at 7px 7px,#82bb6c 0 4px,transparent 5px) 28px 0/42px 14px repeat-x;animation:bulb 1.6s ease-in-out infinite}
+.box::after{background:radial-gradient(circle at 7px 7px,#efcb66 0 4px,transparent 5px) 14px 0/42px 14px repeat-x;animation:bulb 1.6s ease-in-out .8s infinite}
+@keyframes bulb{0%,100%{opacity:1}50%{opacity:.35}}
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+#fit>#cab{z-index:1}
+.sparkle{position:absolute;width:10px;height:10px;opacity:0;background:radial-gradient(circle,#fff8e1 0%,#efcb66 35%,transparent 70%);
+  clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);animation:twinkle var(--d,3s) ease-in-out var(--delay,0s) infinite}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+.snow{position:absolute;top:-12px;border-radius:50%;background:rgba(251,243,236,.85);box-shadow:0 0 6px rgba(255,255,255,.6);animation:snowfall var(--d,12s) linear var(--delay,0s) infinite}
+@keyframes snowfall{0%{transform:translate(0,-10px)}50%{transform:translate(var(--sway,20px),50vh)}100%{transform:translate(0,105vh)}}
+@media (prefers-reduced-motion:reduce){.card{transition:none}.logo,.box::before,.box::after,.sparkle{animation:none}.sparkle{opacity:.6}.snow{display:none}}
 </style>
 </head>
 <body>
 <div id="fit">
+  <div id="fx" aria-hidden="true"></div>
   <div id="cab">
     <canvas id="cv" width="1280" height="720"></canvas>
     <div id="scan"></div>
@@ -964,6 +987,16 @@ if(PROFILE) showOv('ovMenu'); else openLogin();
 if(RECORD_URL && qLoad().length) flush();
 (document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{});
 requestAnimationFrame(loop);
+</script>
+<script>
+// 크리스마스 반짝이·눈송이 (장식 전용, 게임 화면 바깥 배경에만 표시)
+(function(){
+  const fx=document.getElementById('fx'), r=(a,b)=>a+Math.random()*(b-a);
+  for(let i=0;i<30;i++){const e=document.createElement('span');e.className='sparkle';const z=r(6,14);
+    e.style.cssText=`left:${r(0,100)}%;top:${r(0,100)}%;width:${z}px;height:${z}px;--d:${r(2,4.5)}s;--delay:${r(0,4)}s`;fx.appendChild(e);}
+  for(let i=0;i<40;i++){const e=document.createElement('span');e.className='snow';const z=r(2,5);
+    e.style.cssText=`left:${r(0,100)}%;width:${z}px;height:${z}px;opacity:${r(.35,.9)};--d:${r(9,20)}s;--delay:${r(-20,0)}s;--sway:${r(-30,30)}px`;fx.appendChild(e);}
+})();
 </script>
 </body>
 </html>
